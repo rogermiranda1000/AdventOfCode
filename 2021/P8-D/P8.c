@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#define FILE_NAME	"test.txt"//"input.txt"
+#define FILE_NAME	"input.txt"
 #define PRE_RESULT	10
 #define RESULT		4
 #define MAX_DIGITS	7
@@ -105,6 +105,11 @@ bool checkInput(SegmentInfo *data, uint8_t segment_mask[MAX_DIGITS]) {
 			
 		case 6:
 			// 0,6,9
+			segment_mask[position('a')] &= data->value;
+			segment_mask[position('b')] &= data->value;
+			segment_mask[position('f')] &= data->value;
+			segment_mask[position('g')] &= data->value;
+			
 			// s'ha de trobar on està el segment que falta
 			tmp = "d0c6e9";
 			while (*tmp) {
@@ -119,31 +124,7 @@ bool checkInput(SegmentInfo *data, uint8_t segment_mask[MAX_DIGITS]) {
 				tmp += 2;
 			}
 			
-			
-			tmp = "d0c6e9";
-			aux2 = false;
-			while (*tmp) {
-				aux = true;
-				for (tmp2 = 0; tmp2 < MAX_DIGITS && aux; tmp2++) {
-					if (tmp2 == position(*tmp)) continue;
-					aux = ((segment_mask[position(*tmp)] & data->value) > 0);
-				}
-				if (aux) {
-					if (aux2) return false; // multiple solutions
-					aux2 = true;
-					tmp3 = tmp;
-				}
-				tmp += 2;
-			}
-			if (!aux2) return false;
-			
-			tmp = tmp3;
-			for (tmp2 = 0; tmp2 < MAX_DIGITS; tmp2++) {
-				if (tmp2 == position(*tmp)) segment_mask[tmp2] &= not_candidate;
-				else segment_mask[tmp2] &= data->value;
-			}
-			data->real_value = tmp[1]-'0';
-			return true;
+			return false;
 			
 		case 5:
 			// 2,3,5
@@ -172,17 +153,39 @@ bool checkInput(SegmentInfo *data, uint8_t segment_mask[MAX_DIGITS]) {
 				segment_mask[position('e')] &= not_candidate;
 				return true;
 			}
-			else if ((segment_mask[position('b')] & data->value) == 0 && (segment_mask[position('e')] & data->value) == 0) {
-				// és 3
-				data->real_value = 3;
-				segment_mask[position('a')] &= data->value;
-				segment_mask[position('c')] &= data->value;
-				segment_mask[position('d')] &= data->value;
-				segment_mask[position('f')] &= data->value;
-				segment_mask[position('g')] &= data->value;
-				//segment_mask[position('b')] &= not_candidate;
-				//segment_mask[position('e')] &= not_candidate;
-				return true;
+			else {
+				if ((segment_mask[position('b')] & data->value) == 0 && (segment_mask[position('e')] & data->value) == 0) {
+					// és 3
+					data->real_value = 3;
+					segment_mask[position('a')] &= data->value;
+					segment_mask[position('c')] &= data->value;
+					segment_mask[position('d')] &= data->value;
+					segment_mask[position('f')] &= data->value;
+					segment_mask[position('g')] &= data->value;
+					//segment_mask[position('b')] &= not_candidate;
+					//segment_mask[position('e')] &= not_candidate;
+					return true;
+				}
+				else {
+					if ((segment_mask[position('b')] & data->value) == 0) {
+						// pot ser 2 o 3
+						segment_mask[position('a')] &= data->value;
+						segment_mask[position('c')] &= data->value;
+						segment_mask[position('d')] &= data->value;
+						segment_mask[position('g')] &= data->value;
+						//segment_mask[position('b')] &= not_candidate;
+						return false; // tot i que hi ha progres, no es pot estar segur
+					}
+					if ((segment_mask[position('e')] & data->value) == 0) {
+						// pot ser 3 o 5
+						segment_mask[position('a')] &= data->value;
+						segment_mask[position('d')] &= data->value;
+						segment_mask[position('f')] &= data->value;
+						segment_mask[position('g')] &= data->value;
+						//segment_mask[position('e')] &= not_candidate;
+						return false; // tot i que hi ha progres, no es pot estar segur
+					}
+				}
 			}
 			
 			// return false:
@@ -200,75 +203,12 @@ void printBinary(uint8_t enter) {
 	}
 }
 
-bool valid(SegmentInfo *data, uint8_t segment_mask[MAX_DIGITS]) {
-	char *checking[] = {"abcefg", "cf", "acdeg", "acdfg", "bcdf", "abdfg", "abdefg", "acf", "abcdefg", "abcdfg"};
-	char *unchecking[] = {"d", "abdeg", "bf", "be", "aeg", "ce", "c", "bdeg", "", "e"};
-	char *p;
-	bool found = false, only_one = true, ok;
-	int val;
-	for (int x = 0; x <= 9 && only_one; x++) {
-		p = checking[x];
-		ok = true;
-		while (*p && ok) {
-			if ((segment_mask[position(*p)] & data->value) == 1) ok = false;
-			
-			p++;
-		}
-		
-		p = unchecking[x];
-		while (*p && ok) {
-			if ((segment_mask[position(*p)] & data->value) > 0) ok = false;
-			
-			p++;
-		}
-		
-		if (ok) {
-			val = x;
-			if (found) only_one = false;
-			found = true;
-		}
-	}
-	if (!found || !only_one) return false;
-	if (only_one) data->real_value = val;
-	return true;
-}
-
-bool forceSequence(SegmentInfo *data, size_t data_size, uint8_t segment_mask[MAX_DIGITS]) {
-	/*size_t cpy;
-	bool root = true;
-	bool ok;
-	for (int x = 0; x < MAX_DIGITS && root; x++) {
-		if (countOnes(segment_mask[x]) > 1) {
-			root = false;
-			for (int y = 1; y < (1<<MAX_DIGITS); y*=2) {
-				if ((segment_mask[x] & y) == 0) continue;
-				cpy = segment_mask[x];
-				segment_mask[x] = y;
-				ok = forceSequence(data, data_size, segment_mask);
-				if (ok) return true;
-				segment_mask[x] = cpy;
-			}
-		}
-	}
-	
-	if (root) {
-		// check if ok
-		ok = true;
-		for (int x = 0; x < data_size && ok; x++) {
-			SegmentInfo cpy = data[x];
-			ok = valid(&cpy, segment_mask);
-		}
-	}
-	return ok;*/
-	return false;
-}
-
 int main() {
 	FILE *file = NULL;
 	file = fopen(FILE_NAME, "r");
 	
 	int index = 0, x, y;
-	bool done, changes;
+	bool done;
 	char buffer[8];
 	SegmentInfo data[PRE_RESULT+RESULT];
 	uint8_t segment_mask[MAX_DIGITS]; // segment_mask[0] indica que al fer-li la AND amb el resultat i mirar si >0, aquest retornará si la 'a' eestà engegada; pot ser que no s'estigui segur (varis uns)
@@ -283,31 +223,27 @@ int main() {
 			for (x = 0; x < MAX_DIGITS; x++) segment_mask[x] = CANDIDATE_MASK; // tots poden ser qualsevol
 			
 			x = 0;
-			do {
-				done = true;
-				do {
-					if (x == 0) changes = false;
-					if (data[x].real_value == UNCHECKED) {
-						if (!checkInput(&data[x], segment_mask)) done = false;
-						else {
-							changes = true;
-							printf("S'ha trobat %d (equivalent a %d)\n", data[x].real_value, data[x].value);
-							for (y = 0; y < MAX_DIGITS; y++) {
-								printf("Candidat a %c: ", 'a'+y);
-								fflush(stdout);
-								printBinary(segment_mask[y]);
-								write(1, "\n", sizeof(char));
-							}
+			while (true) {
+				if (x == 0) done = true;
+				
+				if (data[x].real_value == UNCHECKED) {
+					if (!checkInput(&data[x], segment_mask)) done = false;
+					else {
+						printf("S'ha trobat %d (equivalent a %d)\n", data[x].real_value, data[x].value);
+						for (y = 0; y < MAX_DIGITS; y++) {
+							printf("Candidat a %c: ", 'a'+y);
+							fflush(stdout);
+							printBinary(segment_mask[y]);
+							write(1, "\n", sizeof(char));
 						}
 					}
-					x++;
-					if (x >= PRE_RESULT+RESULT) x = 0;
-				} while (x != 0 || changes);
-				
-				if (!done) {
-					done = forceSequence(data, PRE_RESULT+RESULT, segment_mask);
 				}
-			} while (!done);
+				x++;
+				if (x >= PRE_RESULT+RESULT) {
+					if (done) break;
+					x = 0;
+				}
+			}
 			
 			// obtenuir el resultat
 			val = 0;
@@ -330,22 +266,18 @@ int main() {
 	for (x = 0; x < MAX_DIGITS; x++) segment_mask[x] = CANDIDATE_MASK; // tots poden ser qualsevol
 	
 	x = 0;
-	do {
-		done = true;
-		do {
-			if (x == 0) changes = false;
-			if (data[x].real_value == UNCHECKED) {
-				if (!checkInput(&data[x], segment_mask)) done = false;
-				else changes = true;
-			}
-			x++;
-			if (x >= PRE_RESULT+RESULT) x = 0;
-		} while (x != 0 || changes);
+	while (true) {
+		if (x == 0) done = true;
 		
-		if (!done) {
-			done = forceSequence(data, PRE_RESULT+RESULT, segment_mask);
+		if (data[x].real_value == UNCHECKED) {
+			if (!checkInput(&data[x], segment_mask)) done = false;
 		}
-	} while (!done);
+		x++;
+		if (x >= PRE_RESULT+RESULT) {
+			if (done) break;
+			x = 0;
+		}
+	}
 	
 	// obtenuir el resultat
 	val = 0;

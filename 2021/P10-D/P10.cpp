@@ -3,8 +3,10 @@
 #include <string.h>
 #include <iostream>
 #include <stack>
+#include <queue>
+#include <set>
 
-#define FILE_NAME "input.txt"
+#define FILE_NAME "test.txt"//"input.txt"
 #define STR 150
 
 int main() {
@@ -12,7 +14,8 @@ int main() {
 	file = fopen(FILE_NAME, "r");
 
 	char line[STR], *ptr;
-	unsigned int points = 0;
+	std::set<unsigned long long> results;
+	unsigned long long aux;
 	bool invalid;
 	
 	fgets(line, STR, file);
@@ -20,6 +23,8 @@ int main() {
 		line[strlen(line)-1] = '\0';
 		
 		std::stack<char> wrappers;
+		
+		// corrupted?
 		ptr = line;
 		invalid = false;
 		while(*ptr && !invalid) {
@@ -58,55 +63,76 @@ int main() {
 					break;
 			}
 			
-			if (invalid) {
-				switch(*ptr) {
-					case ')':
-						points += 3;
-						break;
-						
-					case ']':
-						points += 57;
-						break;
-						
-					case '}':
-						points += 1197;
-						break;
-						
-					case '>':
-						points += 25137;
-						break;
-				}
-			}
-			
 			ptr++;
 		}
 		
-		/*if (!invalid) {
-			// s'esperava més?
-			if (!wrappers.empty()) {
-				switch(wrappers.top()) {
+		wrappers.clear();
+		if (!invalid) {
+			aux = 0;
+			ptr = &line[strlen(line)-1];
+			while(ptr >= line) {
+				switch(*ptr) {
 					case ')':
-						points += 3;
+						wrappers.push('(');
 						break;
 						
 					case ']':
-						points += 57;
+						wrappers.push('[');
 						break;
 						
 					case '}':
-						points += 1197;
+						wrappers.push('{');
 						break;
 						
 					case '>':
-						points += 25137;
+						wrappers.push('<');
+						break;
+					
+					case '(':
+					case '[':
+					case '{':
+					case '<':
+						if (wrappers.empty() /*|| wrappers.top() != *ptr */) {
+							// falta
+							aux *= 5;
+							std::cout << *ptr;
+							switch(*ptr) {
+								case '(':
+									aux++;
+									break;
+									
+								case '[':
+									aux += 2;
+									break;
+									
+								case '{':
+									aux += 3;
+									break;
+									
+								case '<':
+									aux += 4;
+									break;
+							}
+						}
+						else wrappers.pop();
 						break;
 				}
+				
+				ptr--;
 			}
-		}*/
+			
+			std::cout << " (" << aux << ")" << std::endl;
+			if(aux > 0 && !results.insert(aux).second) {
+				std::cerr << "Repeated value" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		}
 		
 		fgets(line, STR, file);
 	}
 	
-	printf("%u\n", points);
+	std::set<unsigned long long>::iterator it = results.begin();
+	std::advance(it, (results.size()-1)/2);
+	printf("%llu\n", *it);
 	fclose(file);
 }

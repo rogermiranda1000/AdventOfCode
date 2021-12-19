@@ -6,7 +6,7 @@
 #include <queue>
 #include <set>
 
-#define FILE_NAME "test.txt"//"input.txt"
+#define FILE_NAME "input.txt"
 #define STR 150
 
 int main() {
@@ -66,62 +66,30 @@ int main() {
 			ptr++;
 		}
 		
-		wrappers.clear();
-		if (!invalid) {
+		if (!invalid && !wrappers.empty()) {
 			aux = 0;
-			ptr = &line[strlen(line)-1];
-			while(ptr >= line) {
-				switch(*ptr) {
+			while(!wrappers.empty()) {
+				aux *= 5;
+				switch(wrappers.top()) {
 					case ')':
-						wrappers.push('(');
+						aux++;
 						break;
 						
 					case ']':
-						wrappers.push('[');
+						aux += 2;
 						break;
 						
 					case '}':
-						wrappers.push('{');
+						aux += 3;
 						break;
 						
 					case '>':
-						wrappers.push('<');
-						break;
-					
-					case '(':
-					case '[':
-					case '{':
-					case '<':
-						if (wrappers.empty() /*|| wrappers.top() != *ptr */) {
-							// falta
-							aux *= 5;
-							std::cout << *ptr;
-							switch(*ptr) {
-								case '(':
-									aux++;
-									break;
-									
-								case '[':
-									aux += 2;
-									break;
-									
-								case '{':
-									aux += 3;
-									break;
-									
-								case '<':
-									aux += 4;
-									break;
-							}
-						}
-						else wrappers.pop();
+						aux += 4;
 						break;
 				}
-				
-				ptr--;
+				wrappers.pop();
 			}
 			
-			std::cout << " (" << aux << ")" << std::endl;
 			if(aux > 0 && !results.insert(aux).second) {
 				std::cerr << "Repeated value" << std::endl;
 				exit(EXIT_FAILURE);

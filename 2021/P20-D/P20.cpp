@@ -9,6 +9,8 @@
 #define ENHANCEMENT_LEN	512
 #define FILE_NAME 		"input.txt"
 
+#define ENHANCEMENTS	50
+
 typedef std::set< std::pair <int,int> > Pixels;
 
 typedef struct {
@@ -85,8 +87,7 @@ int main() {
 		fscanf(file, "%c", &tmp);
 	}
 	
-	img = enhance(img, enhancement);
-	img = enhance(img, enhancement);
+	for (int x = 0; x < ENHANCEMENTS; x++) img = enhance(img, enhancement);
 	
 	if (!img.unchecked_are_black) {
 		printf("[e] Inf\n");

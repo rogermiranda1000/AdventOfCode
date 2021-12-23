@@ -5,10 +5,13 @@
 #include <cmath>        // std::abs
 #include <algorithm>	// std::reverse
 
-#define FILE_NAME 	"test.txt"//"input.txt"
+#define FILE_NAME 	"test2.txt"//"input.txt"
 #define ROOMS		4
 #define ROOM_SIZE	2
 #define HALLWAY_SIZE 11
+#define DESTINATION_UNREACHABLE -1
+
+#define DEBUG
 
 typedef enum {
 	A,
@@ -39,6 +42,10 @@ public:
 		return std::make_pair(2+(room*2), (row == 1) ? 2 : 1);
 	}
 	
+	static bool isInFrontOfRoom(int x) {
+		return x == 2 || x == 4 || x == 6 || x == 8;
+	}
+	
 	/**
 	 * @param room	Habitació del amfípod (de 0 a ROOMS-1)
 	 * @param row	Tamany del vector (de 1 [avall de tot] a 2 [amunt])
@@ -50,11 +57,11 @@ public:
 		// es pot arribar?
 		// de esquerra a dreta
 		for (int x = coord.first; x <= pos_hallway; x++) {
-			if (this->position[x] != None) return INT_MAX; // hi ha un amfípod pel mitj -> no es pot arribar
+			if (this->position[x] != None) return DESTINATION_UNREACHABLE; // hi ha un amfípod pel mitj -> no es pot arribar
 		}
 		// de dreta a esquerra
-		for (int x = coord.first; x >= pos_hallway; x--) {
-			if (this->position[x] != None) return INT_MAX; // hi ha un amfípod pel mitj -> no es pot arribar
+		for (int x = coord.first-1; x >= pos_hallway; x--) {
+			if (this->position[x] != None) return DESTINATION_UNREACHABLE; // hi ha un amfípod pel mitj -> no es pot arribar
 		}
 		
 		return std::abs(pos_hallway - coord.first) + coord.second;
@@ -72,6 +79,12 @@ public:
 	
 	Amphipod getAmphipod(int pos_hallway) {
 		return this->position[pos_hallway];
+	}
+	
+	bool empty() {
+		bool empty = true;
+		for (int x = 0; x < HALLWAY_SIZE && empty; x++) empty = (this->position[x] == None);
+		return empty;
 	}
 };
 
@@ -115,16 +128,16 @@ bool roomOK(std::vector<Amphipod> *room_amphipods, int amphipods_room) {
 
 int getAmphipodCost(Amphipod amphipod, int movements) {
 	switch (amphipod) {
-		case 0:
+		case A:
 			return movements;
 		
-		case 1:
+		case B:
 			return movements*10;
 		
-		case 2:
+		case C:
 			return movements*100;
 		
-		case 3:
+		case D:
 			return movements*1000;
 			
 		default:
@@ -133,11 +146,41 @@ int getAmphipodCost(Amphipod amphipod, int movements) {
 	//return movements * std::pow(10, (int)amphipod); // el 0 té cost 1, el 1 cost 10, el 2 100...
 }
 
-int iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, int total_cost, int max_cost) {
-	int r = total_cost, cost;
+void print(std::vector<Amphipod> *room_amphipods, Hallway hallway) {
+	for (int x = 0; x < HALLWAY_SIZE; x++) printf("%c", hallway.getAmphipod(x) == None ? '.' : (hallway.getAmphipod(x)+'A'));
+	printf("\n##");
+	for (int x = 0; x < ROOMS; x++) {
+		if (room_amphipods[x].size() > 1) printf("%c#", room_amphipods[x].back() + 'A');
+		else printf(".#");
+	}
+	printf("#\n##");
+	for (int x = 0; x < ROOMS; x++) {
+		if (room_amphipods[x].size() > 0) printf("%c#", room_amphipods[x].front() + 'A');
+		else printf(".#");
+	}
+	printf("#\n\n");
+}
+
+#define copyAmphipodArray(cpy, origen) (std::copy(origen, origen+ROOMS, cpy))
+
+unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, unsigned long long total_cost, unsigned long long max_cost) {
+	unsigned long long cost;
 	Amphipod tmp;
-	bool valid;
 	std::vector<Amphipod> cpy[ROOMS];
+	
+#ifdef DEBUG
+	print(room_amphipods, hallway);
+#endif
+	
+	// ja ha acabat?
+	bool valid = hallway.empty();
+	for (int x = 0; x < ROOMS && valid; x++) valid = roomOK(room_amphipods, x);
+	if (valid) {
+#ifdef DEBUG
+		printf("Found in %llu\n", total_cost);
+#endif
+		return total_cost;
+	}
 	
 	// per cada un dels amfípods dels passadissos ha de decidir si pot anar a la seva habitació
 	for (int x = 0; x < HALLWAY_SIZE; x++) {
@@ -145,13 +188,16 @@ int iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, int total_co
 		
 		if (!roomOK(room_amphipods, tmp)) continue; // a la habitació hi ha un amfípod d'un altre tipus que ha de ser eliminat abans
 		
-		for (int x = 0; x < ROOMS; x++) cpy[x] = room_amphipods[x];
-		cpy[tmp].push_back(tmp); // l'amfípod s'afegeix a l'habitació
-		cost = total_cost+getAmphipodCost(tmp, hallway.getCost(tmp, cpy[tmp].size(), x));
-		if (cost < max_cost) {
-			r = iterate(cpy, Hallway(hallway).removeAmphipod(x) /* l'amfípod s'elimina del passadis */, cost, r);
-			max_cost = std::min(max_cost, r);
+		Hallway aux = Hallway(hallway).removeAmphipod(x); // l'amfípod s'elimina del passadis
+		if ((cost = aux.getCost(tmp, room_amphipods[tmp].size()+1, x)) != DESTINATION_UNREACHABLE) {
+			copyAmphipodArray(cpy, room_amphipods);
+			cpy[tmp].push_back(tmp); // l'amfípod s'afegeix a l'habitació
+			cost = total_cost+getAmphipodCost(tmp, cost);
+			if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, aux, cost, max_cost));
 		}
+#ifdef DEBUG
+		else printf("No puc moure %d!\n", x);
+#endif
 	}
 	
 	// per cada un dels amfípods dels inicis de les habitacions incorrectes ha de decidir si va a la seva habitació, o al passadis
@@ -160,45 +206,45 @@ int iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, int total_co
 		
 		valid = true;
 		tmp = room_amphipods[x].back();
-		if (roomOK(room_amphipods, x)) valid = false;
-		else {
+		if (x != tmp && roomOK(room_amphipods, tmp)) {
+			// la habitació destí està ordenada -> pot fer el salt directe
 			// pot anar directament a la seva habitació?
-			if (roomOK(room_amphipods, tmp) && (cost = hallway.getCost(2+(x*2), room_amphipods[x].size(), 2+(tmp*2))) < INT_MAX) {
-				cost += total_cost /* & acumulat */ + Hallway::absoluteToCoordinates(tmp, room_amphipods[tmp].size()+1).second; // queda entrar a la sala
+			std::pair<int,int> aux = Hallway::absoluteToCoordinates(tmp, room_amphipods[tmp].size()+1);
+			if ((cost = hallway.getCost(x, room_amphipods[x].size(), aux.first)) != DESTINATION_UNREACHABLE) {
+				cost = total_cost + getAmphipodCost(tmp, cost) + aux.second /* queda entrar a la sala */;
 				
-				for (int n = 0; n < ROOMS; n++) cpy[n] = room_amphipods[n];
+				copyAmphipodArray(cpy, room_amphipods);
 				cpy[tmp].push_back(tmp);
 				cpy[x].pop_back();
-				if (cost < max_cost) {
-					r = iterate(cpy, hallway, cost, r);
-					max_cost = std::min(max_cost, r);
-				}
+				if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, hallway, cost, max_cost));
 			}
 			else valid = false;
 		}
+		else if (!roomOK(room_amphipods, x)) valid = false; // la habitació no està ordenada -> ha d'anar al passadis
 		
 		if (!valid) {
 			// ha d'anar al passadis
 			for (int y = 0; y < HALLWAY_SIZE; y++) {
-				for (int n = 0; n < ROOMS; n++) cpy[n] = room_amphipods[n];
-				cpy[x].pop_back();
-				cost = total_cost+getAmphipodCost(tmp, hallway.getCost(2+(x*2), room_amphipods[x].size(), y));
-				if (cost < max_cost) {
-					r = iterate(cpy, Hallway(hallway).addAmphipod(y, tmp), cost, r);
-					max_cost = std::min(max_cost, r);
+				if (Hallway::isInFrontOfRoom(y)) continue; // no es poden posar allà
+				
+				if ((cost = hallway.getCost(x, room_amphipods[x].size(), y)) != DESTINATION_UNREACHABLE) {
+					copyAmphipodArray(cpy, room_amphipods);
+					cpy[x].pop_back();
+					cost = total_cost+getAmphipodCost(tmp, cost);
+					if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, Hallway(hallway).addAmphipod(y, tmp), cost, max_cost));
 				}
 			}
 		}
 	}
 	
-	return r;
+	return max_cost;
 }
 
 int main() {
 	std::vector<Amphipod> room_amphipods[ROOMS];
 	getInitialAmphipods(room_amphipods, FILE_NAME);
 	
-	printf("%d\n", iterate(room_amphipods, Hallway(), 0, INT_MAX));
+	printf("%llu\n", iterate(room_amphipods, Hallway(), 0, INT_MAX));
 	
 	return 0;
 }

@@ -5,8 +5,9 @@
 #include <vector>
 #include <algorithm>
 
-#define FILE_NAME 	"test.txt"//"input.txt"
+#define FILE_NAME 	"input.txt"
 #define PLAYERS		2
+#define ROLLS		3
 #define ROLL_DICE	3
 #define SCORE		21
 #define POSITION_ROTATION 10
@@ -43,6 +44,7 @@ public:
 	unsigned int id;
 	
 	unsigned int getID() const {
+		// simetric (Instance(p1,p2) == Instance(p2,p1))
 		if (player1.score <= player2.score) {
 			return ((unsigned int)player1_turn<<31) |
 				((unsigned int)this->player1.position<<28) | ((unsigned int)this->player1.score<<16) |
@@ -85,7 +87,12 @@ public:
 	}
 	
 	bool operator<(const Instance& that) const {
-		return this->id < that.id;
+		//return this->id < that.id;
+		if (this->player1.score != that.player1.score) return this->player1.score < that.player1.score;
+		if (this->player1.position != that.player1.position) return this->player1.position < that.player1.position;
+		if (this->player2.score != that.player2.score) return this->player2.score < that.player2.score;
+		if (this->player2.position != that.player2.position) return this->player2.position < that.player2.position;
+		return this->player1_turn < that.player1_turn;
 	}
 };
 
@@ -160,7 +167,7 @@ int main() {
 	
 	Wins w = computeDice(players[0], players[1], true);
 
-	printf("%llu\n", *max_element(w.begin(), w.end()));
+	printf("%llu\n", *std::max_element(w.begin(), w.end()));
 	
 	return 0;
 }

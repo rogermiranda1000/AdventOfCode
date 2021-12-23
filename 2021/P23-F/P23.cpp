@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>        // std::abs
 #include <algorithm>	// std::reverse
+#include <tuple>
 
 #define FILE_NAME 	"test2.txt"//"input.txt"
 #define ROOMS		4
@@ -163,13 +164,13 @@ void print(std::vector<Amphipod> *room_amphipods, Hallway hallway) {
 
 #define copyAmphipodArray(cpy, origen) (std::copy(origen, origen+ROOMS, cpy))
 
-unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, unsigned long long total_cost, unsigned long long max_cost) {
+unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallway, std::vector<std::tuple<std::vector<Amphipod>*,Hallway,unsigned long long>> logs, unsigned long long total_cost, unsigned long long max_cost) {
 	unsigned long long cost;
 	Amphipod tmp;
 	std::vector<Amphipod> cpy[ROOMS];
 	
 #ifdef DEBUG
-	print(room_amphipods, hallway);
+	logs.push_back(std::tuple<std::vector<Amphipod>*,Hallway,unsigned long long>(room_amphipods, hallway, total_cost));
 #endif
 	
 	// ja ha acabat?
@@ -178,6 +179,11 @@ unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallwa
 	if (valid) {
 #ifdef DEBUG
 		printf("Found in %llu\n", total_cost);
+		for (auto &p : logs) {
+			printf("%llu\n", std::get<2>(p));
+			print(std::get<0>(p), std::get<1>(p));
+		}
+		printf("\n\n");
 #endif
 		return total_cost;
 	}
@@ -193,7 +199,7 @@ unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallwa
 			copyAmphipodArray(cpy, room_amphipods);
 			cpy[tmp].push_back(tmp); // l'amfípod s'afegeix a l'habitació
 			cost = total_cost+getAmphipodCost(tmp, cost);
-			if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, aux, cost, max_cost));
+			if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, aux, logs, cost, max_cost));
 		}
 #ifdef DEBUG
 		else printf("No puc moure %d!\n", x);
@@ -216,7 +222,7 @@ unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallwa
 				copyAmphipodArray(cpy, room_amphipods);
 				cpy[tmp].push_back(tmp);
 				cpy[x].pop_back();
-				if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, hallway, cost, max_cost));
+				if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, hallway, logs, cost, max_cost));
 			}
 			else valid = false;
 		}
@@ -231,7 +237,7 @@ unsigned long long iterate(std::vector<Amphipod> *room_amphipods, Hallway hallwa
 					copyAmphipodArray(cpy, room_amphipods);
 					cpy[x].pop_back();
 					cost = total_cost+getAmphipodCost(tmp, cost);
-					if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, Hallway(hallway).addAmphipod(y, tmp), cost, max_cost));
+					if (cost < max_cost) max_cost = std::min(max_cost, iterate(cpy, Hallway(hallway).addAmphipod(y, tmp), logs, cost, max_cost));
 				}
 			}
 		}
@@ -244,7 +250,7 @@ int main() {
 	std::vector<Amphipod> room_amphipods[ROOMS];
 	getInitialAmphipods(room_amphipods, FILE_NAME);
 	
-	printf("%llu\n", iterate(room_amphipods, Hallway(), 0, INT_MAX));
+	printf("%llu\n", iterate(room_amphipods, Hallway(), std::vector<std::tuple<std::vector<Amphipod>*,Hallway,unsigned long long>>(), 0, INT_MAX));
 	
 	return 0;
 }

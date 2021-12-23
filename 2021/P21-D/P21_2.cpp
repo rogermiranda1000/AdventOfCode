@@ -67,12 +67,12 @@ bool getWins(Player *player1, Player *player2, bool player1_turn) {
 	if (iter == instances.end()) return false;
 	
 	if (iter->isPlayer1(*player1)) {
-		player1->wins += iter->getPlayer1Wins();
-		player2->wins += iter->getPlayer2Wins();
+		player1->wins = iter->getPlayer1Wins();
+		player2->wins = iter->getPlayer2Wins();
 	}
 	else {
-		player1->wins += iter->getPlayer2Wins();
-		player2->wins += iter->getPlayer1Wins();
+		player1->wins = iter->getPlayer2Wins();
+		player2->wins = iter->getPlayer1Wins();
 	}
 	return true;
 }
@@ -96,18 +96,28 @@ void computeDice(Player *player1, Player *player2, bool player1_turn) {
 					pother = *player2;
 					
 					if (p.score >= SCORE) {
-						p.wins++;
+						p.wins = 1;
+						p1_wins++;
 						//addWin(p, pother, false);
 					}
 					else {
 						if (!getWins(&p, &pother, false)) {
-							computeDice(&p, &pother, false);
+							computeDice(&p, &pother, false); // compute dice retorna el numero total de victories
+							
+							// s'ha de restar per obenir delta victoria
+							p.wins -= player1->wins;
+							pother.wins -= player2->wins;
+							p1_wins += p.wins;
+							p2_wins += pother.wins;
+							
 							addWin(p, pother, false);
 						}
+						else {
+							// getWins conté les victories obtingudes a partir d'aquest punt
+							p1_wins += p.wins;
+							p2_wins += pother.wins;
+						}
 					}
-					
-					p1_wins += p.wins - player1->wins;
-					p2_wins += pother.wins - player2->wins;
 				}
 				else {
 					p = *player2;
@@ -117,18 +127,26 @@ void computeDice(Player *player1, Player *player2, bool player1_turn) {
 					pother = *player1;
 					
 					if (p.score >= SCORE) {
-						p.wins++;
+						p.wins = 1;
+						p2_wins++;
 						//addWin(pother, p, true);
 					}
 					else {
 						if (!getWins(&pother, &p, true)) {
 							computeDice(&pother, &p, true);
+							
+							pother.wins -= player1->wins;
+							p.wins -= player2->wins;
+							p1_wins += pother.wins;
+							p2_wins += p.wins;
+							
 							addWin(pother, p, true);
 						}
+						else {
+							p1_wins += pother.wins;
+							p2_wins += p.wins;
+						}
 					}
-					
-					p1_wins += pother.wins - player1->wins;
-					p2_wins += p.wins - player2->wins;
 				}
 			}
 		}

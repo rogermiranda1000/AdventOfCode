@@ -8,7 +8,7 @@
 
 #define FILE_NAME 	"input.txt"
 #define ROOMS		4
-#define ROOM_SIZE	2
+#define ROOM_SIZE	4
 #define HALLWAY_SIZE 11
 #define DESTINATION_UNREACHABLE -1
 
@@ -40,7 +40,7 @@ public:
 	 * @param row	Tamany del vector (de 1 [avall de tot] a 2 [amunt])
 	 */
 	static std::pair<int,int> absoluteToCoordinates(int room, int row) {
-		return std::make_pair(2+(room*2), (row == 1) ? 2 : 1);
+		return std::make_pair(2+(room*2), ROOM_SIZE - row + 1);
 	}
 	
 	static bool isInFrontOfRoom(int x) {
@@ -49,7 +49,7 @@ public:
 	
 	/**
 	 * @param room	Habitació del amfípod (de 0 a ROOMS-1)
-	 * @param row	Tamany del vector (de 1 [avall de tot] a 2 [amunt])
+	 * @param row	Tamany del vector (de 1 [avall de tot] a ROOM_SIZE [amunt])
 	 * @param pos_hallway	A on descansarà (0, 1, 3, 5, 7, 9, 10)
 	 */
 	int getCost(int room, int row, int pos_hallway) {

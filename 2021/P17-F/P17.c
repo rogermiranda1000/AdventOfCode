@@ -42,6 +42,12 @@ Status simulate(Area area, int x_speed, int y_speed) {
 	}
 }
 
+int getMaxY(Area area) {
+	// donada una veloçitat inicial (y_speed0), l'objecte sempre acabarà a (x,0) amb veloçitat (x_speed,-y_speed0)
+	// per tant, el màxim que pot arribar és -area.y2 (arribarà a (x,0) amb veloçitat area.y2, fent que coincideixi)
+	return -area.y2;
+}
+
 int main() {
 	Area area;
 	char aux[10], aux2[10], aux3[10], aux4[10];
@@ -76,16 +82,17 @@ int main() {
 	 * x_speed <= (-1 + sqrt(1 + 8*x2))/2
 	 **/
 	int min_x_speed = ceil((-1.f + sqrt(1 + (8*area.x1)))/2.f), max_x_speed = (-1 + sqrt(1 + (8*area.x2)))/2;
+	int max_y_speed = getMaxY(area);
 	
 	Status simulation;
 	int best_y = 0;
 	int y_speed;
-	/*for (*/int x_speed = min_x_speed/*; x_speed <= max_x_speed; x_speed++) {*/
+	/*for (*/int x_speed = min_x_speed; /*x_speed <= max_x_speed; x_speed++) {*/
 		y_speed = best_y+1;
-		while ((simulation = simulate(area, x_speed, y_speed)) != OVER && simulation != UNREACHABLE) {
+		while ((simulation = simulate(area, x_speed, y_speed)) != UNREACHABLE) {
 			if (simulation == COLLIDED) best_y = y_speed; // no cal mirar si y_speed > best_y, ja que partim d'aquesta
-			printf("%d %d\n", x_speed, y_speed);
 			y_speed++;
+			if (y_speed > max_y_speed) break;
 		}
 	//}
 

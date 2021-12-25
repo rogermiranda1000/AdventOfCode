@@ -29,15 +29,27 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         ArrayList<Node> data = getData("input.txt");
-        int max_magnitude = 0, tmp;
+        int max_magnitude = 0;
+        ArrayList<Permutator> permutators = new ArrayList<>();
         for (Node n1 : data) {
-            for (Node n2 : data) {
-                if (n1 == n2) continue;
-
-                tmp = new Node(n1).add(new Node(n2)).getMagnitude();
-                if (tmp > max_magnitude) max_magnitude = tmp;
-            }
+            Permutator p = new Permutator(n1, data);
+            permutators.add(p);
+            p.start();
         }
+
+        try {
+            int count = 1;
+            for (Permutator p : permutators) {
+                p.join();
+                if (p.getMaxValue() > max_magnitude) max_magnitude = p.getMaxValue();
+
+                System.out.println(count + "/" + permutators.size());
+                count++;
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         System.out.println(max_magnitude);
     }
 }

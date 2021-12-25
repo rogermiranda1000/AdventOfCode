@@ -10,9 +10,14 @@ public class Node {
     public Node(Node that) {
         this.left_value = that.left_value;
         this.right_value = that.right_value;
-        this.father = that.father;
-        if (that.left_node != null) this.left_node = new Node(that.left_node);
-        if (that.right_node != null) this.right_node = new Node(that.right_node);
+        if (that.left_node != null) {
+            this.left_node = new Node(that.left_node);
+            this.left_node.father = this;
+        }
+        if (that.right_node != null) {
+            this.right_node = new Node(that.right_node);
+            this.right_node.father = this;
+        }
     }
 
     public Node(byte left_value, byte right_value) {
